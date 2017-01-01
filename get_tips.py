@@ -129,11 +129,20 @@ def gettips(url):
 		tag = ",".join(tags)
 		tag = tag.encode('utf-8')
 		tags = tag.split(',')
+
+		# newTags = []
+		# for tag in tags:
+		# 	print tag.encode('utf-8')
+		# 	newTags.append(tag.encode('utf-8'))
+
 		return tags
 
 def getTopNjson(tags = []):
 	top_tags = {}
 	for tag in tags:
+		if '' == tag or len(tag) == 0:
+			continue
+
 		if not top_tags.has_key(tag):
 			top_tags[tag] = 0
 
@@ -142,7 +151,7 @@ def getTopNjson(tags = []):
 
 
 	top_tags = getTopNTag(top_tags)
-	return json.dumps(top_tags)
+	return json.dumps(top_tags,ensure_ascii=False,indent=2)
 
 
 def getTopNTag(top_tags = {}):
@@ -159,7 +168,6 @@ def getTopNTag(top_tags = {}):
 			continue
 
 		new_top_new[k] = v
-
 
 	return new_top_new
 	
@@ -186,10 +194,10 @@ if __name__ == "__main__":
 		domainCount = len(domainList)
 		print '===========domainCount:%s=============' %(domainCount)
 		for domain in domainList:
+			print '===========url:%s=============' %(domain[1])
 			tips = gettips(domain[1])
 			if tips:
 				jsonTag = getTopNjson(tips)
-				print '===========url:%s=============' %(domain[1])
 				print jsonTag
 				item_value = []
 				item_value.append(domain[0])
