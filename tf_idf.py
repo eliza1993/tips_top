@@ -140,13 +140,6 @@ def urlDocToTfidf(urlDoc = {}):
     #词包（corpus） 出所有评论的tf-idf 值
 	corpus_tfidf = tfidf[corpus]
 
-	for tfidf in corpus_tfidf:
-		print'=============='
-		print tfidf
-
-
-
-
 
 
 
@@ -156,7 +149,10 @@ if __name__ == "__main__":
 
 	item_site_tags =loadSiteTagList()
 	urlDoc = convertItemTagToDoc(item_site_tags)
-	urlDocToTfidf(urlDoc)
+	for (k,v) in urlDoc.items():
+		print '========'
+		print v
+	#urlDocToTfidf(urlDoc)
 
 
 	 #for item in item_site_tags:
