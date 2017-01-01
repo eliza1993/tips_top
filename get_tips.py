@@ -8,12 +8,15 @@ import jieba.analyse
 import MySQLdb
 import chardet
 from chardet.universaldetector import UniversalDetector
+import socket
 from socket import error as SocketError
 import errno
 import json
 import StringIO
 reload(sys)
 sys.setdefaultencoding('utf-8')
+timeout = 3
+socket.setdefaulttimeout(timeout)
 
 """
 提取站点首页关键词：
