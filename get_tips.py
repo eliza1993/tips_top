@@ -184,8 +184,12 @@ if __name__ == "__main__":
 
 	domainCount = record_limit
 	while domainCount >= record_limit :
-		siteID_select_sql = 'select max(siteID) from Tags_simple'
-		start_id = cur.execute(siteID_select_sql)
+		siteID_select_sql = 'select max(siteID) as start_id from Tags_simple'
+		cur.execute(siteID_select_sql)
+		start_id =  cur.fetchall()[0][0]
+		if start_id == None:
+			start_id = 0
+
 		print '===========start_id:%s=============' %(start_id)
 		insert_sql = insert()
 		select_sql = getSelectCountSql(start_id)
