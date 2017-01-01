@@ -10,6 +10,7 @@ import chardet
 from chardet.universaldetector import UniversalDetector
 from socket import error as SocketError
 import errno
+import json
 import StringIO
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -34,17 +35,17 @@ Created on 20161201
 '''
 处理数据库
 '''
-db_host = 'localhost'
+db_host = '192.168.1.103'
 db_username = 'root'
 db_password = 'mysql'
 db_database_name = 'Freebuf_Secpulse'
-db_table_name = 'Community'
+db_table_name = 'GrabSite'
 
 
 '''
 提取标签数
 '''
-topK = 5
+topN = 20
 
 
 '''
@@ -56,18 +57,18 @@ start_id = 7003
 '''
 最大查询条目数
 '''
-record_limit = 705
+record_limit = 100
 
 
 def getMysqlConn():
 	return MySQLdb.connect(host = db_host,user = db_username,passwd = db_password,db = db_database_name,charset = "utf8")
 
 def insert():
-	insert_sql = "insert into Tags_simple(siteDomain,CommunID,tags) "+"values(%s,%s,%s)"
+	insert_sql = "insert into Tags_simple(siteID,siteDomain,tags) "+"values(%s,%s,%s)"
 	return insert_sql
 
 def getSelectCountSql(id):
-    select_sql = "select id,siteDomain,CommunID from " + db_table_name + " where id > " + str(id) +" order by id asc limit " + str(record_limit);
+    select_sql = "select id,siteDomain from " + db_table_name + " where id > " + str(id) +" order by id asc limit " + str(record_limit);
     return select_sql
 
 
@@ -121,33 +122,81 @@ def gettips(url):
 		res = re.findall(re_words, content)    
 		str_convert = ' '.join(res)
 	
-		tags = jieba.analyse.extract_tags(str_convert,topK) 
+		#tags = jieba.analyse.extract_tags(str_convert,topK) 
+		tags = jieba.cut(str_convert, cut_all=False)
 		print "=============="
 		print "tags in %s:"% url
 		tag = ",".join(tags)
 		tag = tag.encode('utf-8')
-		print tag
-		return tag
+		tags = tag.split(',')
+		return tags
+
+def getTopNjson(tags = []):
+	top_tags = {}
+	for tag in tags:
+		if not top_tags.has_key(tag):
+			top_tags[tag] = 0
+
+		top_tags[tag] = top_tags[tag] +1
+
+
+
+	top_tags = getTopNTag(top_tags)
+	return json.dumps(top_tags)
+
+
+def getTopNTag(top_tags = {}):
+	#if len(top_tags) <= topN:
+	#	return top_tags
+
+	sorted(top_tags.items(),key=lambda item:item[1])
+	startN =  len(top_tags) - topN
+	new_top_new = {}
+
+	for (k,v) in  top_tags.items():
+		if startN > 0:
+			startN = startN -1
+			continue
+
+		new_top_new[k] = v
+
+
+	return new_top_new
+	
+
 
 
 if __name__ == "__main__":
+
+
 	#url = 'https://www.secsilo.com'
 	conn=getMysqlConn()
 	cur=conn.cursor()
 
-	insert_sql = insert()
-	select_sql = getSelectCountSql(start_id)
-	cur.execute(select_sql)
-	rows = cur.fetchall()
-	for row in rows:
-		tips = gettips(row[1])
-		if tips:
-			item_value = []
-			item_value.append(row[1])
-			item_value.append(row[2])
-			item_value.append(tips)
-			cur.execute(insert_sql,item_value)
-			conn.commit()
+
+	domainCount = record_limit
+	while domainCount >= record_limit :
+		siteID_select_sql = 'select max(siteID) from Tags_simple'
+		start_id = cur.execute(siteID_select_sql)
+		print '===========start_id:%s=============' %(start_id)
+		insert_sql = insert()
+		select_sql = getSelectCountSql(start_id)
+		cur.execute(select_sql)
+		domainList = cur.fetchall()
+		domainCount = len(domainList)
+		print '===========domainCount:%s=============' %(domainCount)
+		for domain in domainList:
+			tips = gettips(domain[1])
+			if tips:
+				jsonTag = getTopNjson(tips)
+				print '===========url:%s=============' %(domain[1])
+				print jsonTag
+				item_value = []
+				item_value.append(domain[0])
+				item_value.append(domain[1])
+				item_value.append(jsonTag)
+				cur.execute(insert_sql,item_value)
+				conn.commit()
 	
 	print "Finish " 
 
