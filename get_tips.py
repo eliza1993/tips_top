@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import urllib2
 import re
@@ -19,10 +19,10 @@ timeout = 3
 socket.setdefaulttimeout(timeout)
 
 """
-提取站点首页关键词：
-1、获取站点首页源码
-2、正则提取源码中的中文
-3、分词提取top5存入数据库
+计算站点画像的tf-idf文档对象模型：
+1、
+2、
+3、
 
 Args:
     url:需要提取的站点首页url，从Community表中读
@@ -81,7 +81,7 @@ def gettips(url):
 
 	"""
 	except urllib2.HTTPError, e:
-		print e.code	
+		print e.code
 	except urllib2.URLError, e:
 		print e.reason
 	except SocketError as e:
@@ -96,19 +96,19 @@ def gettips(url):
 
 	try:
 		headers = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6' }
-		req = urllib2.Request(url, headers = headers) 
+		req = urllib2.Request(url, headers = headers)
 		html = urllib2.urlopen(req).read()
 	except:
 		print "pass error"
 		return 0
-	
+
 	#coding = chardet.detect(str1)
 	detector = UniversalDetector()
 	buf = StringIO.StringIO(html)
 	for line in buf.readlines():
 		#print line
 		detector.feed(line)
-		if detector.done: 
+		if detector.done:
 			break
 	detector.close()
 	buf.close()
@@ -121,11 +121,11 @@ def gettips(url):
 		content = html.decode(coding['encoding'],'ignore')
 
 		re_words = re.compile(u"[\u4e00-\u9fa5]+")
-	  
-		res = re.findall(re_words, content)    
+
+		res = re.findall(re_words, content)
 		str_convert = ' '.join(res)
-	
-		#tags = jieba.analyse.extract_tags(str_convert,topK) 
+
+		#tags = jieba.analyse.extract_tags(str_convert,topK)
 		tags = jieba.cut(str_convert, cut_all=False)
 		print "=============="
 		print "tags in %s:"% url
@@ -173,7 +173,7 @@ def getTopNTag(top_tags = {}):
 		new_top_new[k] = v
 
 	return new_top_new
-	
+
 
 
 
@@ -212,7 +212,7 @@ if __name__ == "__main__":
 				item_value.append(jsonTag)
 				cur.execute(insert_sql,item_value)
 				conn.commit()
-	
-	print "Finish " 
+
+	print "Finish "
 
 

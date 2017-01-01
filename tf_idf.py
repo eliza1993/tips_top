@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 import urllib2
 import re
 import sys
@@ -12,6 +12,23 @@ import logging
 from gensim import corpora, models, similarities
 reload(sys)
 sys.setdefaultencoding('utf-8')
+
+
+"""
+计算站点画像的tf-idf文档对象模型：：
+1、
+2、
+3、
+
+Args:
+    url:需要提取的站点首页url，从Community表中读
+
+Return:
+    站点标签(5个)，存储在数据库Tags_simple中。
+
+Created on 20170101
+@author:
+"""
 
 
 
@@ -38,12 +55,16 @@ def loadSiteTagSql(start_id = 0):
 	return "select id, siteID,siteDomain,tags from " + db_table_name + " where id > " + str(start_id)  + ' order by id asc ' +  " limit "   + str(record_limit)
 
 
+
 def loadSiteTagList():
+	'''
+	读数据库Tags_simple中的tag内容，以字典方式传递
+	'''
 	conn=getMysqlConn()
 	cur=conn.cursor()
-	start_id = 0;
+	start_id = 0
 
-	select_sql = loadSiteTagSql(start_id);
+	select_sql = loadSiteTagSql(start_id)
 	cur.execute(select_sql)
 	siteTagList = cur.fetchall()
 	allSiteTagList = []
@@ -52,7 +73,7 @@ def loadSiteTagList():
 
 	while len(siteTagList) >= record_limit:
 		start_id = siteTagList[len(siteTagList) - 1][0]
-		select_sql = loadSiteTagSql(start_id);
+		select_sql = loadSiteTagSql(start_id)
 		cur.execute(select_sql)
 		siteTagList = cur.fetchall()
 		for tag in siteTagList:
@@ -74,6 +95,9 @@ def loadSiteTagList():
 
 
 def convertItemTagToDoc(item_site_tags = {}):
+	'''
+	字典存储sitDomain和tags
+	'''
 	urlDocDic = {}
 	for item in item_site_tags:
 		doc = itemTagToDoc(item['tags'])
@@ -113,7 +137,7 @@ def urlDocToTfidf(urlDoc = {}):
     #使用tf-idf 模型得出该评论集的tf-idf 模型
 	tfidf = models.TfidfModel(corpus)
 
-    #词包（corpus） 出所有评论的tf-idf 值 
+    #词包（corpus） 出所有评论的tf-idf 值
 	corpus_tfidf = tfidf[corpus]
 
 	for tfidf in corpus_tfidf:
@@ -134,11 +158,11 @@ if __name__ == "__main__":
 	urlDoc = convertItemTagToDoc(item_site_tags)
 	urlDocToTfidf(urlDoc)
 
-	 
+
 	 #for item in item_site_tags:
 	 	#print item['tags']
-	
-		
+
+
 
 
 
