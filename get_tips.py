@@ -62,6 +62,13 @@ start_id = 7003
 '''
 record_limit = 100
 
+'''
+停用词名称
+'''
+stop_word_file = "stop_words.txt"
+
+stop_words = []
+
 
 def getMysqlConn():
 	return MySQLdb.connect(host = db_host,user = db_username,passwd = db_password,db = db_database_name,charset = "utf8")
@@ -146,6 +153,9 @@ def getTopNjson(tags = []):
 		if '' == tag or len(tag) == 0:
 			continue
 
+		if tag in stop_words:
+			continue
+
 		if not top_tags.has_key(tag):
 			top_tags[tag] = 0
 
@@ -175,12 +185,23 @@ def getTopNTag(top_tags = {}):
 	return new_top_new
 
 
+def init_stop_word():
+	for word in open(stop_word_file):
+		word = word.replace('\n','')
+		word = word.replace(' ','')
+		if '' == word or word is None or word == '\n':
+			continue
+		stop_words.append(word)
+
+
 
 
 if __name__ == "__main__":
 
 
 	#url = 'https://www.secsilo.com'
+	init_stop_word()
+
 	conn=getMysqlConn()
 	cur=conn.cursor()
 
