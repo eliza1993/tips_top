@@ -32,7 +32,7 @@ Created on 20161227
 '''
 数据库
 '''
-db_host = '192.168.1.103'
+db_host = '127.0.0.1'
 db_port = 3306
 db_username = 'root'
 db_password =  'mysql'
@@ -56,9 +56,6 @@ def itemTagToDoc(tag = ''):
             v = v - 1
 
     return doc
-
-
-
 
 
 
@@ -192,7 +189,12 @@ class PyLouvain:
             #print("pass #%d" % i)
             #i += 1
             print "best Q = %s" % (best_q)
+        print "****************"
+        print len(self.actual_partition)
+        for i in range(len(self.actual_partition)):
+            print self.actual_partition[i]
         return (self.actual_partition, best_q)
+
 
 
     '''
@@ -200,11 +202,24 @@ class PyLouvain:
         partition：节点列表
     '''
     def compute_modularity(self, partition):
+        print "=======partition======"
+        print partition
         q = 0.0
         m2 = self.m * 2.0
         for i in range(len(partition)):
             q += self.s_in[i] / m2 - (self.s_tot[i] / m2) ** 2
         return q
+    '''
+    def get_similar_s(self,partition):
+
+            根据社区id计算社区主题质量
+
+        k = len(self.actual_partition)
+        for i in range(len(self.actual_partition)):
+            for
+            print self.actual_partition[i]
+        pass
+    '''
 
     '''
         计算社区_c中具有节点的模块化增益。
@@ -215,17 +230,6 @@ class PyLouvain:
     '''
     def compute_modularity_gain(self, node, c, k_i_in):
         return 2*k_i_in - self.s_tot[c] * self.k_i[node] / self.m
-
-    '''
-        计算社区_c中具有节点的汇聚值（模块化增益+主题相似度）。
-         _node：int
-         _c：int community
-         _k_i_in：从_node到_c中的节点的链接的权重的总和
-
-    '''
-    def modularity_gain_similar_topic(self,node,c,k_i_in):
-        modularity_gain = 2*k_i_in - self.s_tot[c] * self.k_i[node] / self.m
-        similar_topic
 
 
 
@@ -268,7 +272,7 @@ class PyLouvain:
 
                 communities = {} # 只考虑不同社区的邻居
                 for neighbor in self.get_neighbors(node):
-                    print '========node=%s neighbor=%s ' %(node,neighbor)
+                    #print '========node=%s neighbor=%s ' %(node,neighbor)
                     #邻居节点所在社区
                     community = self.communities[neighbor]
                     #社区已经被计算过了
@@ -290,13 +294,12 @@ class PyLouvain:
                     # 计算通过将_node移动到_neighbor的社区获得的模块性增益
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     site_merge_gain = self.getMegeFactor(gain,node_community,community)
-                    
+
                     if site_merge_gain > best_gain:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
                         best_shared_links = shared_links
-
 
 
 
@@ -313,6 +316,8 @@ class PyLouvain:
 
             if not improvement:
                 break
+
+        #self.get_similar_s()
         return best_partition
 
     '''
@@ -367,6 +372,8 @@ class PyLouvain:
 
 
         self.communities = communities_
+        print "communities"
+        print self.communities
         self.site_communities_tags = site_communities_tags_
 
         # 重造相连的边
@@ -430,7 +437,7 @@ class PyLouvain:
 
         return site_tags_
 
-        
+
 
     def getMegeFactor(self,best_gain,source_comm_id,des_comm_id):
         if not self.site_tags.has_key(source_comm_id) or not self.site_tags.has_key(des_comm_id):
@@ -439,13 +446,13 @@ class PyLouvain:
         texta = self.site_tags[source_comm_id]
         textb = self.site_tags[des_comm_id]
 
-        cosValue = self.getCosSimilarity(texta,textb) 
+        cosValue = self.getCosSimilarity(texta,textb)
 
         site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue * best_gain
-        print '=============source_comm_id = %s des_comm_id=%s'%(source_comm_id,des_comm_id)
-        print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
+        #print '=============source_comm_id = %s des_comm_id=%s'%(source_comm_id,des_comm_id)
+        #print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
         return site_merge_gain
-    
+
 
 
     def getCosSimilarity(self,textA='',textB=''):
@@ -462,7 +469,7 @@ class PyLouvain:
         resDic = json.loads(response)
         if resDic.has_key('data'):
             return resDic['data']
-        
+
         return 0
 
 
