@@ -227,7 +227,9 @@ class PyLouvain:
         s = 0.0
         s_m2 = self.s_m * 2.0
         for node in range(len(partition)):
-            s += self.s_s_in[node] / s_m2
+            value = self.s_s_tot[node]+self.s_s_in[node]
+            if value >0:
+                s += self.s_s_in[node] / (self.s_s_tot[node]+self.s_s_in[node])    
 
         s = s/len(partition)
 
