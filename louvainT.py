@@ -32,10 +32,10 @@ Created on 20161227
 '''
 数据库
 '''
-db_host = '192.168.1.103'
-db_port = 3306
+db_host = '127.0.0.1'
+db_port = 3307
 db_username = 'root'
-db_password =  'mysql'
+db_password =  '123456'
 db_database_name = 'Freebuf_Secpulse'
 db_relation_name = 'SiteRelation'
 
@@ -43,7 +43,7 @@ db_relation_name = 'SiteRelation'
 Merge factor 合并因子
 '''
 
-merge_factor = 0.5
+merge_factor = 0.1
 httpClient = None
 
 
@@ -114,29 +114,38 @@ class PyLouvain:
             tag_records = cur.fetchall()
 
 
+
         nodes_,edges_,site_tags = in_order(nodes,edges,site_tags)
-
-
 
         return cls(nodes_, edges_,site_tags)
 
 
 
-    def __init__(self, nodes, edges,site_tags={}):
+    def __init__(self, nodes, edges,site_tags={},edges_s = []):
         self.nodes = nodes
         self.edges = edges
+
+        #站点主题初始化
         self.site_tags = site_tags
 
         # 预计算 m (网络中所有链路的权重和)
         #       k_i (入射到节点i的链路的权重和)
         self.m = 0
         self.k_i = [0 for n in nodes]
+        self.s_m = 0
+        self.s_k_i = [0 for n in nodes]
+
         self.edges_of_node = {}
-        self.w = [0 for n in nodes]
+        self.w = [0 for n in nodes] 
+        self.s_w = [0 for n in nodes] 
         for e in edges:
+            self.s_m += e[2]
             self.m += e[1]
             self.k_i[e[0][0]] += e[1]
             self.k_i[e[0][1]] += e[1] # 最初没有自循环
+            self.s_k_i[e[0][0]] += e[2]
+            self.s_k_i[e[0][1]] += e[2]
+            
             # 按节点保存边
             if e[0][0] not in self.edges_of_node:
                 self.edges_of_node[e[0][0]] = [e]
@@ -154,7 +163,6 @@ class PyLouvain:
         self.actual_partition = []
 
 
-
     '''
         应用Louvain算法.
     '''
@@ -168,6 +176,10 @@ class PyLouvain:
             i += 1
             partition = self.first_phase(network) #初始分区
             q = self.compute_modularity(partition)
+            s = self.compute_similarity(partition)
+            print '============= s ============'
+            print s
+            time.sleep(5)
             print "q = %s" % q
             partition = [c for c in partition if c]
             #print("%s (%.8f)" % (partition, q))
@@ -206,6 +218,21 @@ class PyLouvain:
             q += self.s_in[i] / m2 - (self.s_tot[i] / m2) ** 2
         return q
 
+
+
+    def compute_similarity(self,partition):
+        '''
+        计算主题质量
+        '''
+        s = 0.0
+        s_m2 = self.s_m * 2.0
+        for node in range(len(partition)):
+            s += self.s_s_in[node] / s_m2
+
+        s = s/len(partition)
+
+        return s
+
     '''
         计算社区_c中具有节点的模块化增益。
          _node：int
@@ -240,7 +267,6 @@ class PyLouvain:
         while 1:
             print '=========== loop_count:%s ===========' %(loop_count)
             loop_count = loop_count + 1
-            time.sleep(3)
             improvement = 0
             for node in network[0]:
                 node_community = self.communities[node]
@@ -252,6 +278,7 @@ class PyLouvain:
                 # 从其社区中删除_node
                 best_partition[node_community].remove(node)
                 best_shared_links = 0
+                best_shared_topic = 0.0
 
                 for e in self.edges_of_node[node]:
                     if e[0][0] == e[0][1]:
@@ -259,9 +286,15 @@ class PyLouvain:
                         #如果点和邻居节点在同一个社区，则best_shared_links +1
                     if e[0][0] == node and self.communities[e[0][1]] == node_community or e[0][1] == node and self.communities[e[0][0]] == node_community:
                         best_shared_links += e[1]
+                        best_shared_topic+= e[2]
                 #一个点移除社区后内部权重外部权重同时减少
                 self.s_in[node_community] -= 2 * (best_shared_links + self.w[node])
                 self.s_tot[node_community] -= self.k_i[node]
+
+                self.s_s_in[node_community] -= 2 * (best_shared_topic + self.s_w[node])
+                self.s_s_tot[node_community] -= self.s_k_i[node]
+
+
 
                 #把原来节点所在社区置为-1
                 self.communities[node] = -1
@@ -277,6 +310,7 @@ class PyLouvain:
 
                     communities[community] = 1
                     shared_links = 0
+                    shared_topic = 0.0
                     for e in self.edges_of_node[node]:
                         if e[0][0] == e[0][1]:
                             continue
@@ -284,6 +318,7 @@ class PyLouvain:
                         #计算新社区的增加的内部权重
                         if e[0][0] == node and self.communities[e[0][1]] == community or e[0][1] == node and self.communities[e[0][0]] == community:
                             shared_links += e[1]
+                            shared_topic+=e[2]
 
 
 
@@ -296,6 +331,7 @@ class PyLouvain:
                         best_community = community
                         best_gain = site_merge_gain
                         best_shared_links = shared_links
+                        best_shared_topic = shared_topic
 
 
 
@@ -303,10 +339,14 @@ class PyLouvain:
                 # 将_node插入模块性增益最大的社区
                 best_partition[best_community].append(node)
                 self.communities[node] = best_community
+
                 #记录主题该节点的最佳社区
                 self.site_communities_tags[node] = best_community
                 self.s_in[best_community] += 2 * (best_shared_links + self.w[node])
                 self.s_tot[best_community] += self.k_i[node]
+
+                self.s_s_in[best_community] += 2 * (best_shared_topic + self.w[node])
+                self.s_s_tot[best_community] += self.s_k_i[node]
                 if node_community != best_community:
                     improvement = 1
 
@@ -336,10 +376,16 @@ class PyLouvain:
         partition = [[node] for node in network[0]]
         self.s_in = [0 for node in network[0]]
         self.s_tot = [self.k_i[node] for node in network[0]]
+        self.s_s_in = [0 for node in network[0]]
+        self.s_s_tot = [self.s_k_i[node] for node in network[0]]
         for e in network[1]:
             if e[0][0] == e[0][1]: # 只有自循环
                 self.s_in[e[0][0]] += e[1]
                 self.s_in[e[0][1]] += e[1]
+
+                self.s_s_in[e[0][0]] += e[2]
+                self.s_s_in[e[0][1]] += e[2]
+
         return partition
 
     '''
@@ -371,17 +417,24 @@ class PyLouvain:
 
         # 重造相连的边
         edges_ = {}
+        edges_s = {}
         for e in network[1]:
             #用社区id作为新节点坐标 并计算权重
             ci = self.communities[e[0][0]]
             cj = self.communities[e[0][1]]
             try:
                 edges_[(ci, cj)] += e[1]
+                edges_s[(ci, cj)] += e[2]
             except KeyError:
                 edges_[(ci, cj)] = e[1]
+                edges_s[(ci, cj)] = e[2]
 
-        edges_ = [(k, v) for k, v in edges_.items()]
+        edges_arr = []
+        for k,v  in edges_.items() :
+            s_v = edges_s[k]
+            edges_arr.append((k,v,s_v))
 
+        edges_ = edges_arr
 
         #合并主题
         site_tags_ = {}
@@ -394,20 +447,27 @@ class PyLouvain:
 
         self.site_tags = site_tags_
 
-
         # 重新计算k_i向量并且按节点存储边缘
         self.k_i = [0 for n in nodes_]
         self.edges_of_node = {}
         self.w = [0 for n in nodes_]
+        self.s_w = [0 for n in nodes_]
+
         for e in edges_:
             self.k_i[e[0][0]] += e[1]
             self.k_i[e[0][1]] += e[1]
+            self.s_k_i[e[0][0]] += e[2]
+            self.s_k_i[e[0][1]] += e[2]
+
             if e[0][0] == e[0][1]:
                 self.w[e[0][0]] += e[1]
+                self.s_w[e[0][0]] += e[2]
+
             if e[0][0] not in self.edges_of_node:
                 self.edges_of_node[e[0][0]] = [e]
             else:
                 self.edges_of_node[e[0][0]].append(e)
+
             if e[0][1] not in self.edges_of_node:
                 self.edges_of_node[e[0][1]] = [e]
             elif e[0][0] != e[0][1]:
@@ -433,37 +493,53 @@ class PyLouvain:
         
 
     def getMegeFactor(self,best_gain,source_comm_id,des_comm_id):
+        '''
+            计算站点合并模块度和主题权重值
+        '''
         if not self.site_tags.has_key(source_comm_id) or not self.site_tags.has_key(des_comm_id):
             return best_gain
 
         texta = self.site_tags[source_comm_id]
         textb = self.site_tags[des_comm_id]
 
-        cosValue = self.getCosSimilarity(texta,textb) 
+        cosValue = getCosSimilarity(texta,textb) 
 
         site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue * best_gain
-        print '=============source_comm_id = %s des_comm_id=%s'%(source_comm_id,des_comm_id)
-        print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
+        #print '=============source_comm_id = %s des_comm_id=%s'%(source_comm_id,des_comm_id)
+        #print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
         return site_merge_gain
     
 
 
-    def getCosSimilarity(self,textA='',textB=''):
-        if textA == '' or textB == '':
-            return 0;
-
-        paramstr = {}
-        paramstr['texta'] = textA
-        paramstr['textb'] = textB
 
 
-        params = urllib.urlencode(paramstr)
-        response =  urllib.urlopen('http://127.0.0.1:8882/similarity/cos',params).read()
-        resDic = json.loads(response)
-        if resDic.has_key('data'):
-            return resDic['data']
-        
-        return 0
+
+    def get____s(self,communityid):
+        '''
+
+        '''
+        pass
+
+
+def getCosSimilarity(textA='',textB=''):
+    '''
+    计算 texta textb 余玄相似度
+    '''
+    if textA == '' or textB == '':
+        return 0;
+
+    paramstr = {}
+    paramstr['texta'] = textA
+    paramstr['textb'] = textB
+
+
+    params = urllib.urlencode(paramstr)
+    response =  urllib.urlopen('http://127.0.0.1:8882/similarity/cos',params).read()
+    resDic = json.loads(response)
+    if resDic.has_key('data'):
+        return resDic['data']
+    
+    return 0
 
 
 '''
@@ -472,26 +548,34 @@ class PyLouvain:
      _edges：（（int，int），weight）
 '''
 def in_order(nodes, edges,site_tags={}):
-        # 重建具有连续标识符的图
-        nodes = list(nodes.keys()) #key按顺序输出为list
+    nodes = list(nodes.keys()) #key按顺序输出为list
 
-        nodes.sort() #排序
-        i = 0
-        nodes_ = []
-        d = {}
-        for n in nodes:
-            nodes_.append(i)
-            d[n] = i
-            i += 1
+    nodes.sort() #排序
+    i = 0
+    nodes_ = []
+    d = {}
+    for n in nodes:
+        nodes_.append(i)
+        d[n] = i
+        i += 1
 
-        edges_ = []
-        for e in edges:
-            edges_.append(((d[e[0][0]], d[e[0][1]]), e[1]))
+    edges_ = []
+    edges_s_ = []
+    for e in edges:
+        similar_s = 0.0
+        if e[0][0] == e[0][1]:
+            similar_s = 1.0
 
-        site_tags_={}
-        for (k,v) in site_tags.items():
-            site_tags_[d[k]] = v
-        return (nodes_, edges_,site_tags_)
+        if e[0][0] != e[0][1] and site_tags.has_key(e[0][0]) and site_tags.has_key(e[0][1]):
+            similar_s = getCosSimilarity(site_tags[e[0][0]],site_tags[e[0][1]])
+
+        edges_.append(((d[e[0][0]], d[e[0][1]]), e[1],similar_s))
+
+    site_tags_ = {}
+    for (k,v) in site_tags.items():
+        site_tags_[d[k]] = v
+
+    return (nodes_, edges_,site_tags_)
 
 
 
