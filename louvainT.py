@@ -43,8 +43,8 @@ db_relation_name = 'SiteRelation'
 Merge factor 合并因子
 '''
 
-merge_factor = 0.1
-cos_similar_limit = 0.1
+merge_factor = 0.5
+cos_similar_limit = 0.5
 httpClient = None
 
 
@@ -169,7 +169,15 @@ class PyLouvain:
             i += 1
             partition = self.first_phase(network) #初始分区
             q = self.compute_modularity(partition)
+            comm_similar_variance = self.compute_community_similar_variance(partition)
+            print '============='
+            for index in range(0,len(comm_similar_variance)):
+                if comm_similar_variance[index] > 0.0:
+                    print '============ community:%s variance:%s' %(index,comm_similar_variance[index])
+
             print "q = %s" % q
+            exit(1)
+            
             partition = [c for c in partition if c]
             #print("%s (%.8f)" % (partition, q))
             # 用分区聚簇初始节点  压缩
@@ -194,6 +202,70 @@ class PyLouvain:
             #i += 1
             print "best Q = %s" % (best_q)
         return (self.actual_partition, best_q)
+
+    '''
+    计算模块主题相似度因子
+    1.计算社区站点之间主题相似度
+    2.
+    '''
+    def compute_community_similar_variance(self,partition = []):
+        community_similar = []
+        for index in range(0,len(partition)):
+            comm_nodes = partition[index]
+            if len(comm_nodes) > 0:
+                community_similar.append(self.compute_single_community_variance(comm_nodes))
+            else:
+                community_similar.append(0.0)
+
+        return community_similar
+
+
+    def compute_variance(self,community_similar,node_pair_count,comm_similar_avge):
+        variance = 0.0
+        for index in range(0,len(community_similar)):
+            if community_similar[index] > 0.0:
+                tempValue = community_similar[index] - comm_similar_avge
+                if tempValue < 0.0:
+                    tempValue = 0 - tempValue;
+                tempValue = tempValue*tempValue
+                variance = variance +  tempValue
+
+
+        return variance/node_pair_count;
+
+
+
+
+
+    def compute_single_community_variance(self,comm_nodes=[]):
+        node_pair_count = 0
+        comm_similar_sum = 0.0
+        comm_similar_arr = []
+        for index in range(0,len(comm_nodes)):
+            index2 = index +1
+            #print '==========index:%s len:%s========'%(index,len(comm_nodes))
+            while index2 < len(comm_nodes):
+                if self.site_tags.has_key(comm_nodes[index]) and self.site_tags.has_key(comm_nodes[index2]):
+                    site_similar = self.getCosSimilarity(self.site_tags[comm_nodes[index]],self.site_tags[comm_nodes[index2]])*100
+                    comm_similar_sum = comm_similar_sum + site_similar
+                    comm_similar_arr.append(site_similar)
+                    
+                    node_pair_count = node_pair_count + 1
+                index2 = index2+1
+
+
+        if node_pair_count == 0:
+            return 0.0
+
+
+
+        comm_similar_avge = comm_similar_sum/node_pair_count
+
+        print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
+        variance = self.compute_variance(comm_similar_arr,node_pair_count,comm_similar_avge)
+        return variance
+
+
 
 
     '''
@@ -291,6 +363,7 @@ class PyLouvain:
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     cosValue = self.getCosSimilarityById(node_community,community)
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
+                    #site_merge_gain = gain
                     
                     if site_merge_gain > best_gain and cosValue > cos_similar_limit:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
@@ -436,7 +509,6 @@ class PyLouvain:
     def getMegeFactor(self,best_gain,cosValue):
 
         site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue * best_gain
-        print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
         return site_merge_gain
     
 
