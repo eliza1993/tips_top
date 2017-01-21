@@ -176,8 +176,6 @@ class PyLouvain:
                     print '============ community:%s variance:%s' %(index,comm_similar_variance[index])
 
             print "q = %s" % q
-            exit(1)
-            
             partition = [c for c in partition if c]
             #print("%s (%.8f)" % (partition, q))
             # 用分区聚簇初始节点  压缩
@@ -246,7 +244,7 @@ class PyLouvain:
             #print '==========index:%s len:%s========'%(index,len(comm_nodes))
             while index2 < len(comm_nodes):
                 if self.site_tags.has_key(comm_nodes[index]) and self.site_tags.has_key(comm_nodes[index2]):
-                    site_similar = self.getCosSimilarity(self.site_tags[comm_nodes[index]],self.site_tags[comm_nodes[index2]])*100
+                    site_similar = self.getCosSimilarity(self.site_tags[comm_nodes[index]],self.site_tags[comm_nodes[index2]])
                     comm_similar_sum = comm_similar_sum + site_similar
                     comm_similar_arr.append(site_similar)
                     
@@ -260,6 +258,9 @@ class PyLouvain:
 
 
         comm_similar_avge = comm_similar_sum/node_pair_count
+        print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
+
+        return comm_similar_avge
 
         print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
         variance = self.compute_variance(comm_similar_arr,node_pair_count,comm_similar_avge)
