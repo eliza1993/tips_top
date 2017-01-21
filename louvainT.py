@@ -32,10 +32,10 @@ Created on 20161227
 '''
 数据库
 '''
-db_host = '192.168.1.103'
-db_port = 3306
+db_host = '127.0.0.1'
+db_port = 3307
 db_username = 'root'
-db_password =  'mysql'
+db_password =  '123456'
 db_database_name = 'Freebuf_Secpulse'
 db_relation_name = 'SiteRelation'
 
@@ -43,7 +43,8 @@ db_relation_name = 'SiteRelation'
 Merge factor 合并因子
 '''
 
-merge_factor = 0.5
+merge_factor = 0.1
+cos_similar_limit = 0.1
 httpClient = None
 
 
@@ -268,7 +269,6 @@ class PyLouvain:
 
                 communities = {} # 只考虑不同社区的邻居
                 for neighbor in self.get_neighbors(node):
-                    print '========node=%s neighbor=%s ' %(node,neighbor)
                     #邻居节点所在社区
                     community = self.communities[neighbor]
                     #社区已经被计算过了
@@ -289,9 +289,10 @@ class PyLouvain:
 
                     # 计算通过将_node移动到_neighbor的社区获得的模块性增益
                     gain = self.compute_modularity_gain(node, community, shared_links)
-                    site_merge_gain = self.getMegeFactor(gain,node_community,community)
+                    cosValue = self.getCosSimilarityById(node_community,community)
+                    site_merge_gain = self.getMegeFactor(gain,cosValue)
                     
-                    if site_merge_gain > best_gain:
+                    if site_merge_gain > best_gain and cosValue > cos_similar_limit:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
@@ -432,19 +433,22 @@ class PyLouvain:
 
         
 
-    def getMegeFactor(self,best_gain,source_comm_id,des_comm_id):
+    def getMegeFactor(self,best_gain,cosValue):
+
+        site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue * best_gain
+        print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
+        return site_merge_gain
+    
+
+
+    def getCosSimilarityById(self,source_comm_id,des_comm_id):
         if not self.site_tags.has_key(source_comm_id) or not self.site_tags.has_key(des_comm_id):
-            return best_gain
+            return 0.0
 
         texta = self.site_tags[source_comm_id]
         textb = self.site_tags[des_comm_id]
 
-        cosValue = self.getCosSimilarity(texta,textb) 
-
-        site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue * best_gain
-        print '=============source_comm_id = %s des_comm_id=%s'%(source_comm_id,des_comm_id)
-        print 'cosValue=%s site_merge_gain=%s best_gain=%s' %(cosValue,site_merge_gain,best_gain)
-        return site_merge_gain
+        return self.getCosSimilarity(texta,textb) 
     
 
 
