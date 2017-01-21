@@ -32,10 +32,10 @@ Created on 20161227
 '''
 数据库
 '''
-db_host = '192.168.1.103'
-db_port = 3306
+db_host = '127.0.0.1'
+db_port = 3307
 db_username = 'root'
-db_password =  'mysql'
+db_password =  '123456'
 db_database_name = 'Freebuf_Secpulse'
 db_relation_name = 'SiteRelation'
 
@@ -168,6 +168,12 @@ class PyLouvain:
             i += 1
             partition = self.first_phase(network) #初始分区
             q = self.compute_modularity(partition)
+            comm_similar_avge = self.compute_community_similar(partition)
+            for index in range(0,len(comm_similar_avge)):
+                if comm_similar_avge[index] > 0.0:
+                    print '============ community:%s similar:%s' %(index,comm_similar_avge[index])
+
+            exit()
             print "q = %s" % q
             partition = [c for c in partition if c]
             #print("%s (%.8f)" % (partition, q))
@@ -205,6 +211,54 @@ class PyLouvain:
         for i in range(len(partition)):
             q += self.s_in[i] / m2 - (self.s_tot[i] / m2) ** 2
         return q
+
+
+    '''
+    计算模块主题相似度因子
+    1.计算社区站点之间主题相似度
+    2.
+    '''
+    def compute_community_similar(self,partition = []):
+        community_similar = []
+        for index in range(0,len(partition)):
+            comm_nodes = partition[index]
+            if len(comm_nodes) > 0:
+                community_similar.append(self.compute_single_community_similar(comm_nodes))
+            else:
+                community_similar.append(0.0)
+
+        return community_similar
+
+
+
+    def compute_single_community_similar(self,comm_nodes=[]):
+        node_pair_count = 0
+        comm_similar_sum = 0.0
+        for index in range(0,len(comm_nodes)):
+            index2 = index +1
+            print '==========index:%s len:%s========'%(index,len(comm_nodes))
+            while index2 < len(comm_nodes):
+                if self.site_tags.has_key(comm_nodes[index]) and self.site_tags.has_key(comm_nodes[index2]):
+                    comm_similar_sum = comm_similar_sum + self.getCosSimilarity(self.site_tags[comm_nodes[index]],self.site_tags[comm_nodes[index]])
+                    
+                    node_pair_count = node_pair_count + 1
+                index2 = index2+1
+
+
+        if node_pair_count == 0:
+            return 0.0
+
+        comm_similar_avge = comm_similar_sum/node_pair_count
+
+        return comm_similar_avge
+
+
+
+                
+
+
+
+        
 
     '''
         计算社区_c中具有节点的模块化增益。
@@ -268,7 +322,6 @@ class PyLouvain:
 
                 communities = {} # 只考虑不同社区的邻居
                 for neighbor in self.get_neighbors(node):
-                    print '========node=%s neighbor=%s ' %(node,neighbor)
                     #邻居节点所在社区
                     community = self.communities[neighbor]
                     #社区已经被计算过了
@@ -289,7 +342,8 @@ class PyLouvain:
 
                     # 计算通过将_node移动到_neighbor的社区获得的模块性增益
                     gain = self.compute_modularity_gain(node, community, shared_links)
-                    site_merge_gain = self.getMegeFactor(gain,node_community,community)
+                    #site_merge_gain = self.getMegeFactor(gain,node_community,community)
+                    site_merge_gain = gain
                     
                     if site_merge_gain > best_gain:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
