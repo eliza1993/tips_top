@@ -395,9 +395,9 @@ class PyLouvain:
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     cosValue = self.getCosSimilarityById(node_community,community)
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
-                    site_merge_gain = gain
+                    # site_merge_gain = gain
                     
-                    if site_merge_gain > best_gain:
+                    if site_merge_gain > 0 and site_merge_gain > best_gain and cosValue > cos_similar_limit:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
