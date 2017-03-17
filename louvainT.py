@@ -39,7 +39,7 @@ db_host = '127.0.0.1'
 db_port = 3307
 db_username = 'root'
 db_password =  '123456'
-db_database_name = 'Freebuf_Secpulse'
+db_database_name = 'Freebuf_Secpulse2'
 db_relation_name = 'SiteRelation'
 
 '''
@@ -398,7 +398,7 @@ class PyLouvain:
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
                     # site_merge_gain = gain
                     
-                    if site_merge_gain > best_gain and site_merge_gain > 0 and  cosValue > cos_similar_limit:
+                    if site_merge_gain > best_gain and gain > 0 and  cosValue > cos_similar_limit:
                     # if site_merge_gain > best_gain :
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
@@ -612,7 +612,8 @@ def in_order(nodes, edges,site_tags={}):
 
         site_tags_={}
         for (k,v) in site_tags.items():
-            site_tags_[d[k]] = v
+            if d.has_key(k):
+                site_tags_[d[k]] = v
         return (nodes_, edges_,site_tags_)
 
 def draw_networkx(vertices,edges):
