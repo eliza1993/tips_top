@@ -7,6 +7,9 @@ from gensim.models import Word2Vec
 import logging,gensim,os
 import httplib, urllib
 
+import cairo
+from igraph import *
+
 import time
 import sys
 reload(sys)
@@ -123,9 +126,6 @@ class PyLouvain:
 
 
         nodes_,edges_,site_tags = in_order(nodes,edges,site_tags)
-
-
-
         return cls(nodes_, edges_,site_tags)
 
 
@@ -205,6 +205,11 @@ class PyLouvain:
             if q == best_q:
                 break
             network = self.second_phase(network, partition)
+
+            draw_networkx(len(network[0]),network[1])
+
+
+            exit(1)
             best_partition = partition
             best_q = q
             #print("pass #%d" % i)
@@ -288,6 +293,10 @@ class PyLouvain:
         #print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
         #variance = self.compute_variance(comm_similar_arr,node_pair_count,comm_similar_avge)
         return comm_similar_avge
+
+
+
+
 
 
 
@@ -386,9 +395,9 @@ class PyLouvain:
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     cosValue = self.getCosSimilarityById(node_community,community)
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
-                    # site_merge_gain = gain
+                    site_merge_gain = gain
                     
-                    if site_merge_gain > best_gain and cosValue > cos_similar_limit:
+                    if site_merge_gain > best_gain:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
@@ -604,5 +613,13 @@ def in_order(nodes, edges,site_tags={}):
             site_tags_[d[k]] = v
         return (nodes_, edges_,site_tags_)
 
+def draw_networkx(vertices,edges):
+    newedges = []
+    for tupe in edges:
+        newedges.append(tupe[0])
 
+    g = Graph()
+    g.add_vertices(vertices)
+    g.add_edges(newedges)
+    plot(g)
 
