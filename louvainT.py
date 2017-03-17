@@ -310,7 +310,9 @@ class PyLouvain:
         q = 0.0
         m2 = self.m * 2.0
         for i in range(len(partition)):
-            q += self.s_in[i] / m2 - (self.s_tot[i] / m2) ** 2
+            tmpQ = self.s_in[i] / m2 - (self.s_tot[i] / m2) ** 2
+            q += tmpQ
+
         return q
 
     '''
@@ -542,7 +544,7 @@ class PyLouvain:
 
     def getMegeFactor(self,best_gain,cosValue):
 
-        site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue * best_gain
+        site_merge_gain = merge_factor * best_gain + (1.0 -  merge_factor) * cosValue 
         return site_merge_gain
     
 
@@ -594,9 +596,26 @@ class PyLouvain:
      _edges：（（int，int），weight）
 '''
 def in_order(nodes, edges,site_tags={}):
+
+        edges_ = []
+        newedges = []
+        newNodeDic = {}
+        for e in edges:
+            if site_tags.has_key(e[0][0]) and site_tags.has_key(e[0][1]):
+                newedges.append(e)
+                newNodeDic[e[0][0]] = 1
+                newNodeDic[e[0][1]] = 1
+
+                
         # 重建具有连续标识符的图
         nodes = list(nodes.keys()) #key按顺序输出为list
+        newNodes = []
 
+        for _node in nodes:
+            if newNodeDic.has_key(_node):
+                newNodes.append(_node)
+
+        nodes = newNodes
         nodes.sort() #排序
         i = 0
         nodes_ = []
@@ -606,14 +625,19 @@ def in_order(nodes, edges,site_tags={}):
             d[n] = i
             i += 1
 
-        edges_ = []
+
         for e in edges:
-            edges_.append(((d[e[0][0]], d[e[0][1]]), e[1]))
+            # print e[0][0],e[0][1]
+            # print site_tags.has_key(e[0][0]),site_tags.has_key(e[0][1])
+            if site_tags.has_key(e[0][0]) and site_tags.has_key(e[0][1]):
+                edges_.append(((d[e[0][0]], d[e[0][1]]), e[1]))
+
 
         site_tags_={}
         for (k,v) in site_tags.items():
             if d.has_key(k):
                 site_tags_[d[k]] = v
+
         return (nodes_, edges_,site_tags_)
 
 def draw_networkx(vertices,edges):
