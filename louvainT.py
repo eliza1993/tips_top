@@ -206,15 +206,16 @@ class PyLouvain:
                 break
             network = self.second_phase(network, partition)
 
-            draw_networkx(len(network[0]),network[1])
+            
 
-
-            exit(1)
             best_partition = partition
             best_q = q
             #print("pass #%d" % i)
             #i += 1
             print "best Q = %s" % (best_q)
+
+
+        draw_networkx(len(network[0]),network[1])
         return (self.actual_partition, best_q)
 
     '''
@@ -397,7 +398,8 @@ class PyLouvain:
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
                     # site_merge_gain = gain
                     
-                    if site_merge_gain > 0 and site_merge_gain > best_gain and cosValue > cos_similar_limit:
+                    if site_merge_gain > best_gain and site_merge_gain > 0 and  cosValue > cos_similar_limit:
+                    # if site_merge_gain > best_gain :
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
@@ -621,5 +623,7 @@ def draw_networkx(vertices,edges):
     g = Graph()
     g.add_vertices(vertices)
     g.add_edges(newedges)
-    plot(g)
+
+    nlayout = g.layout("fr")
+    plot(g,layout=nlayout)
 
