@@ -48,6 +48,13 @@ cos_similar_limit = 0.5
 httpClient = None
 
 
+'''
+ 阿尔法 S 和 Q的权重参数
+
+
+'''
+f_a = 1.0
+
 def itemTagToDoc(tag = ''):
     tagDic = json.loads(tag)
     doc = ''
@@ -169,11 +176,15 @@ class PyLouvain:
             i += 1
             partition = self.first_phase(network) #初始分区
             q = self.compute_modularity(partition)
-            comm_similar_variance = self.compute_community_similar_variance(partition)
-            print '============='
-            for index in range(0,len(comm_similar_variance)):
-                if comm_similar_variance[index] > 0.0:
-                    print '============ community:%s variance:%s' %(index,comm_similar_variance[index])
+            k_similar = self.compute_community_similar_variance(partition)
+            _tsta_fa = self.tsta_fa(k_similar,q)
+
+
+            print '====================================='
+            print '============k_similar:%s================'%(k_similar)
+            print '============= _tsta_fa =============='
+            print '============= %s ==============' %(_tsta_fa)
+         
 
             print "q = %s" % q
             partition = [c for c in partition if c]
@@ -202,20 +213,32 @@ class PyLouvain:
         return (self.actual_partition, best_q)
 
     '''
-    计算模块主题相似度因子
+    计算社区的平均相似度
     1.计算社区站点之间主题相似度
-    2.
+    2.获取平均相似度
+    3.
     '''
     def compute_community_similar_variance(self,partition = []):
         community_similar = []
         for index in range(0,len(partition)):
             comm_nodes = partition[index]
-            if len(comm_nodes) > 0:
+            if len(comm_nodes) > 1:
                 community_similar.append(self.compute_single_community_variance(comm_nodes))
-            else:
-                community_similar.append(0.0)
 
-        return community_similar
+
+
+        k_similar = 0.0
+        if len(community_similar) > 0:
+            total_similar = 0.0
+            for single_similar in community_similar:
+                total_similar = total_similar + single_similar
+
+            print '======================='
+            print community_similar
+            print total_similar
+            k_similar = total_similar / len(community_similar)
+
+        return k_similar
 
 
     def compute_variance(self,community_similar,node_pair_count,comm_similar_avge):
@@ -258,13 +281,13 @@ class PyLouvain:
 
 
         comm_similar_avge = comm_similar_sum/node_pair_count
-        print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
+        #print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
 
+        #return comm_similar_avge
+
+        #print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
+        #variance = self.compute_variance(comm_similar_arr,node_pair_count,comm_similar_avge)
         return comm_similar_avge
-
-        print '==============node_pair_count%s comm_similar_avge%s'%(node_pair_count,comm_similar_avge)
-        variance = self.compute_variance(comm_similar_arr,node_pair_count,comm_similar_avge)
-        return variance
 
 
 
@@ -314,7 +337,6 @@ class PyLouvain:
         while 1:
             print '=========== loop_count:%s ===========' %(loop_count)
             loop_count = loop_count + 1
-            time.sleep(3)
             improvement = 0
             for node in network[0]:
                 node_community = self.communities[node]
@@ -364,7 +386,7 @@ class PyLouvain:
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     cosValue = self.getCosSimilarityById(node_community,community)
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
-                    #site_merge_gain = gain
+                    # site_merge_gain = gain
                     
                     if site_merge_gain > best_gain and cosValue > cos_similar_limit:
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
@@ -541,6 +563,18 @@ class PyLouvain:
             return resDic['data']
         
         return 0
+
+    def tsta_fa(self,s = 0.0,q = 0.0):
+        if s+q - 0.0 == 0.0:
+            return 0.0
+
+        if s*q - 0.0 == 0.0:
+            return 0.0
+        
+        fenzi = (1 + f_a) * (1 + f_a)*(s*q)
+        fenmu = f_a*f_a*(s+q)
+
+        return (fenzi / fenmu)
 
 
 '''
