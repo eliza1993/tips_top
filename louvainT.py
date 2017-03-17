@@ -10,6 +10,8 @@ import httplib, urllib
 import cairo
 from igraph import *
 
+import random
+
 import time
 import sys
 reload(sys)
@@ -39,7 +41,7 @@ db_host = '127.0.0.1'
 db_port = 3307
 db_username = 'root'
 db_password =  '123456'
-db_database_name = 'Freebuf_Secpulse2'
+db_database_name = 'Freebuf_Secpulse'
 db_relation_name = 'SiteRelation'
 
 '''
@@ -171,6 +173,7 @@ class PyLouvain:
         best_partition = [[node] for node in network[0]]
         best_q = -1
         i = 1
+        best_tsta_fa = 0.0
         while 1:
             print("pass #%d" % i)
             i += 1
@@ -202,17 +205,18 @@ class PyLouvain:
                 self.actual_partition = partition
 
             #没有变化就退出完成
-            if q == best_q:
+            print "best_tsta_fa  = %s" % (best_tsta_fa)
+            if _tsta_fa <= best_tsta_fa:
                 break
             network = self.second_phase(network, partition)
 
-            
-
             best_partition = partition
             best_q = q
+
+            best_tsta_fa = _tsta_fa
             #print("pass #%d" % i)
             #i += 1
-            print "best Q = %s" % (best_q)
+            
 
 
         draw_networkx(len(network[0]),network[1])
@@ -606,7 +610,7 @@ def in_order(nodes, edges,site_tags={}):
                 newNodeDic[e[0][0]] = 1
                 newNodeDic[e[0][1]] = 1
 
-                
+
         # 重建具有连续标识符的图
         nodes = list(nodes.keys()) #key按顺序输出为list
         newNodes = []
@@ -645,10 +649,25 @@ def draw_networkx(vertices,edges):
     for tupe in edges:
         newedges.append(tupe[0])
 
+    colors = []
+    for index in range(0,vertices):
+        r = random.randint(0, 255)
+        g = random.randint(0, 255)
+        b = random.randint(0, 255)
+        colors.append((r,g,b))
+
+
     g = Graph()
     g.add_vertices(vertices)
     g.add_edges(newedges)
 
+    visual_style = {}
+    visual_style['vertex_color'] = colors
+    visual_style['bbox'] = (600, 600)
+    visual_style["vertex_size"] = 10
+    visual_style["margin"] = 20
+
+
     nlayout = g.layout("fr")
-    plot(g,layout=nlayout)
+    plot(g,layout=nlayout,**visual_style)
 
