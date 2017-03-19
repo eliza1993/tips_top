@@ -48,8 +48,8 @@ db_relation_name = 'SiteRelation'
 Merge factor 合并因子
 '''
 
-merge_factor = 0.5
-cos_similar_limit = 0.5
+merge_factor = 0.8
+cos_similar_limit = 0.0
 httpClient = None
 
 
@@ -209,6 +209,8 @@ class PyLouvain:
             if _tsta_fa <= best_tsta_fa:
                 break
             network = self.second_phase(network, partition)
+            #draw_networkx(len(network[0]),network[1])
+            #exit(1)
 
             best_partition = partition
             best_q = q
@@ -219,7 +221,8 @@ class PyLouvain:
             
 
 
-        draw_networkx(len(network[0]),network[1])
+        print '================%s============'%(len(best_partition))
+        draw_networkx(len(network[0]),network[1],self.actual_partition)
         return (self.actual_partition, best_q)
 
     '''
@@ -402,10 +405,10 @@ class PyLouvain:
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     cosValue = self.getCosSimilarityById(node_community,community)
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
-                    # site_merge_gain = gain
+                    #site_merge_gain = gain
                     
-                    if site_merge_gain > best_gain and gain > 0 and  cosValue > cos_similar_limit:
-                    # if site_merge_gain > best_gain :
+                    if site_merge_gain > best_gain and gain > 0 and  cosValue >= cos_similar_limit:
+                    #if site_merge_gain > best_gain :
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
@@ -644,13 +647,28 @@ def in_order(nodes, edges,site_tags={}):
 
         return (nodes_, edges_,site_tags_)
 
-def draw_networkx(vertices,edges):
+def draw_networkx(vertices,edges,actual_partition):
+
+    print '===========vertices%s========'%(vertices)
+    print '===========actual_partition length%s========'%(len(actual_partition))
     newedges = []
     for tupe in edges:
         newedges.append(tupe[0])
 
+    _newedges_count = vertices    
+    for index in range(0,len(actual_partition)):
+        siteNode = actual_partition[index]
+        for siteNo in siteNode:
+            _newedges = (index,siteNo)
+            _newedges_count = _newedges_count + 1
+            newedges.append(_newedges)
+
+
+
+    print '========length %s'%(len(edges))
+    print '========length2 %s'%(len(newedges))
     colors = []
-    for index in range(0,vertices):
+    for index in range(0,_newedges_count):
         r = random.randint(0, 255)
         g = random.randint(0, 255)
         b = random.randint(0, 255)
@@ -658,7 +676,7 @@ def draw_networkx(vertices,edges):
 
 
     g = Graph()
-    g.add_vertices(vertices)
+    g.add_vertices(_newedges_count)
     g.add_edges(newedges)
 
     visual_style = {}
