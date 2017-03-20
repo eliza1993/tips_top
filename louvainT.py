@@ -48,8 +48,8 @@ db_relation_name = 'SiteRelation'
 Merge factor 合并因子
 '''
 
-merge_factor = 0.8
-cos_similar_limit = 0.00
+merge_factor = 0.1
+cos_similar_limit = 0.01
 httpClient = None
 
 
@@ -58,7 +58,7 @@ httpClient = None
 
 
 '''
-f_a = 1.0
+f_a = 0.1
 
 def itemTagToDoc(tag = ''):
     tagDic = json.loads(tag)
@@ -128,6 +128,8 @@ class PyLouvain:
 
 
         nodes_,edges_,site_tags = in_order(nodes,edges,site_tags)
+        #draw_networkx_origin(len(nodes_),edges_)
+        #exit(1)
         return cls(nodes_, edges_,site_tags)
 
 
@@ -405,10 +407,10 @@ class PyLouvain:
                     gain = self.compute_modularity_gain(node, community, shared_links)
                     cosValue = self.getCosSimilarityById(node_community,community)
                     site_merge_gain = self.getMegeFactor(gain,cosValue)
-                    #site_merge_gain = gain
+                    site_merge_gain = gain
                     
-                    if site_merge_gain > best_gain and gain > 0 and  cosValue >= cos_similar_limit:
-                    #if site_merge_gain > best_gain :
+                    #if site_merge_gain > best_gain and gain > 0 and  cosValue >= cos_similar_limit:
+                    if site_merge_gain > best_gain :
                         #print "gain %s > best_gain: %s" % (gain,best_gain)
                         best_community = community
                         best_gain = site_merge_gain
@@ -591,7 +593,7 @@ class PyLouvain:
         if s*q - 0.0 == 0.0:
             return 0.0
         
-        fenzi = (1 + f_a) * (1 + f_a)*(s*q)
+        fenzi = (1 + f_a*f_a) *(s*q)
         fenmu = f_a*f_a*(s+q)
 
         return (fenzi / fenmu)
@@ -727,4 +729,29 @@ def draw_networkx(vertices,edges,actual_partition):
 
     nlayout = g.layout("fr")
     plot(g,layout=nlayout,**visual_style)
+
+
+def draw_networkx_origin(vertices,edges):
+    colors = []
+    for index in range(0,vertices):
+        colors.append(get_network_color(index))
+
+    newedges = []
+    for tupe in edges:
+        newedges.append(tupe[0])
+
+
+    g = Graph()
+    g.add_vertices(vertices)
+    g.add_edges(newedges)
+
+    visual_style = {}
+    visual_style['vertex_color'] = colors
+    visual_style['bbox'] = (600, 600)
+    visual_style["vertex_size"] = 10
+    visual_style["margin"] = 20
+
+    nlayout = g.layout("fr")
+    plot(g,layout=nlayout,**visual_style)
+
 
