@@ -12,6 +12,8 @@ from igraph import *
 
 import random
 
+import datetime
+
 import time
 import sys
 reload(sys)
@@ -48,8 +50,8 @@ db_relation_name = 'SiteRelation'
 Merge factor 合并因子
 '''
 
-merge_factor = 0.1
-cos_similar_limit = 0.01
+merge_factor = 0.5
+cos_similar_limit = 0.5
 httpClient = None
 
 
@@ -211,8 +213,8 @@ class PyLouvain:
             if _tsta_fa <= best_tsta_fa:
                 break
             network = self.second_phase(network, partition)
-            # draw_networkx(len(network[0]),network[1],self.actual_partition)
-            # exit(1)
+            draw_networkx(len(network[0]),network[1],self.actual_partition)
+            exit(1)
 
             best_partition = partition
             best_q = q
@@ -684,10 +686,15 @@ def draw_networkx(vertices,edges,actual_partition):
 
     _newedges_count = 0 
     max_site = 0
-    site_communites = {}   
+    site_communites = {}
+    communities_size = {}   
     for index in range(0,len(actual_partition)):
         network_color.append(get_network_color(index))
         siteNode = actual_partition[index]
+
+        if len(siteNode) < 3:
+            communities_size[index] = 1
+
         for siteNo in siteNode:
             _newedges = (index,siteNo)
             _newedges_count = _newedges_count + 1
@@ -708,17 +715,22 @@ def draw_networkx(vertices,edges,actual_partition):
     for index in range(0,_newedges_count):
         colors.append(network_color[0])
 
+    _newedges_arr = []
     for _edges in newedges:
+        if not communities_size.has_key(_edges[0]) and not communities_size.has_key(_edges[0]):
+            _newedges_arr.append(_edges)
+
+    for _edges in _newedges_arr:
         if _edges[0] < len(network_color):
             colors_index = _edges[1]
             comm_index = _edges[0]
             colors[colors_index] = network_color[comm_index]
 
 
-
     g = Graph()
     g.add_vertices(_newedges_count)
-    g.add_edges(newedges)
+    g.add_edges(_newedges_arr)
+
 
     visual_style = {}
     visual_style['vertex_color'] = colors
@@ -728,7 +740,8 @@ def draw_networkx(vertices,edges,actual_partition):
 
 
     nlayout = g.layout("fr")
-    plot(g,layout=nlayout,**visual_style)
+    filename= "/Users/jinyinta/opengit/tips_top/social_network"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") +".png"
+    plot(g,filename,layout=nlayout,**visual_style)
 
 
 def draw_networkx_origin(vertices,edges):
@@ -752,6 +765,7 @@ def draw_networkx_origin(vertices,edges):
     visual_style["margin"] = 20
 
     nlayout = g.layout("fr")
-    plot(g,layout=nlayout,**visual_style)
+    filename= "/Users/jinyinta/opengit/tips_top/social_network"+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") +".png"
+    plot(g,filename,layout=nlayout,**visual_style)
 
 
