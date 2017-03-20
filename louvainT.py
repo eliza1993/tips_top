@@ -49,7 +49,7 @@ Merge factor 合并因子
 '''
 
 merge_factor = 0.8
-cos_similar_limit = 0.0
+cos_similar_limit = 0.00
 httpClient = None
 
 
@@ -209,8 +209,8 @@ class PyLouvain:
             if _tsta_fa <= best_tsta_fa:
                 break
             network = self.second_phase(network, partition)
-            #draw_networkx(len(network[0]),network[1])
-            #exit(1)
+            # draw_networkx(len(network[0]),network[1],self.actual_partition)
+            # exit(1)
 
             best_partition = partition
             best_q = q
@@ -647,32 +647,71 @@ def in_order(nodes, edges,site_tags={}):
 
         return (nodes_, edges_,site_tags_)
 
+def get_network_color(seed):
+    _color = []
+    _color.append('brown')
+    _color.append('blue')
+    _color.append('pink')
+
+    _color.append('gold')
+    _color.append('gray')
+    _color.append('green')
+
+    _color.append('red')
+    _color.append('black')
+    _color.append('silver')
+    _color.append('orange')
+
+
+
+
+    random.seed(seed)
+    index = random.randint(0, 1000000)%len(_color)
+    return _color[index]
+    
+
+
 def draw_networkx(vertices,edges,actual_partition):
 
     print '===========vertices%s========'%(vertices)
     print '===========actual_partition length%s========'%(len(actual_partition))
+    network_color = []
     newedges = []
     for tupe in edges:
         newedges.append(tupe[0])
 
-    _newedges_count = vertices    
+    _newedges_count = 0 
+    max_site = 0
+    site_communites = {}   
     for index in range(0,len(actual_partition)):
+        network_color.append(get_network_color(index))
         siteNode = actual_partition[index]
         for siteNo in siteNode:
             _newedges = (index,siteNo)
             _newedges_count = _newedges_count + 1
+            site_communites[siteNo] = index
             newedges.append(_newedges)
+
+            if max_site < siteNo:
+                max_site = siteNo;
 
 
 
     print '========length %s'%(len(edges))
     print '========length2 %s'%(len(newedges))
+    print '========_newedges_count %s'%(_newedges_count)
+
+
     colors = []
     for index in range(0,_newedges_count):
-        r = random.randint(0, 255)
-        g = random.randint(0, 255)
-        b = random.randint(0, 255)
-        colors.append((r,g,b))
+        colors.append(network_color[0])
+
+    for _edges in newedges:
+        if _edges[0] < len(network_color):
+            colors_index = _edges[1]
+            comm_index = _edges[0]
+            colors[colors_index] = network_color[comm_index]
+
 
 
     g = Graph()
